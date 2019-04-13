@@ -1,0 +1,15 @@
+<resources>
+    <string name="app_name">Listen Up Mah I\'m callin ye</string>
+    <string name="no_permission_text">Phone permission required to function. Press button to allow permission</string>
+    <string name="give_permission">Gib permission</string>
+    <string name="settings_title">Sound settings</string>
+    <string name="settings_volume">Set ring volume</string>
+    <string name="whitelist_title">Whitelisted numbers</string>
+    <string name="whitelist_add_contact">Add contact</string>
+    <string name="whitelist_add_number">Add phone number</string>
+    <string name="preference_before_settings">preferences_a</string>
+    <string name="preference_whitelist">preferences_b</string>
+    <string name="saved_whitelist_count">pref_whitelist_count</string>
+    <string name="saved_whitelist_key">pref_whitelist_value_</string>
+    <string name="saved_before_ringer_mode">pref_ringer_mode_before</string>
+</resources>
