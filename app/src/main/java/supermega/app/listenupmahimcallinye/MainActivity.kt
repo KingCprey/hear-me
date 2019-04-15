@@ -2,6 +2,9 @@ package supermega.app.listenupmahimcallinye
 
 import android.Manifest
 import android.app.Activity
+import android.app.Notification
+import android.app.NotificationManager
+import android.content.Context
 import android.content.pm.PackageManager
 import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
@@ -13,14 +16,17 @@ import android.view.View
 import android.widget.*
 import android.content.DialogInterface
 import android.content.Intent
+import android.os.Build
 import android.provider.ContactsContract
 import android.text.InputType
+import android.util.Log
 import android.widget.EditText
 
 class MainActivity : AppCompatActivity() {
     private val REQUEST_PHONE=1
     private val REQUEST_CONTACTS=2
     private val REQUEST_PICK_CONTACT=3
+    private val REQUEST_NOTIFICATION_SETTINGS=5
     private lateinit var layout_has_permission:ConstraintLayout
     private lateinit var layout_no_permission:ConstraintLayout
     private lateinit var scroll_whitelisted_numbers: ScrollView
@@ -30,6 +36,9 @@ class MainActivity : AppCompatActivity() {
     private lateinit var button_clear_whitelist:ImageButton
     private lateinit var whitelist:WhitelistManager
     private var number_string="";
+
+    private val TAG="OSHITACALL MainActivity"
+    private lateinit var notificationManager:NotificationManager
 
     private fun initViews(){
         layout_has_permission=findViewById(R.id.has_permission_layout)
@@ -44,6 +53,8 @@ class MainActivity : AppCompatActivity() {
     private fun hasPhonePermission():Boolean{
         return ContextCompat.checkSelfPermission(this, Manifest.permission.READ_PHONE_STATE)== PackageManager.PERMISSION_GRANTED
     }
+    private fun hasNotificationPermission():Boolean{ if(Build.VERSION.SDK_INT>=Build.VERSION_CODES.M){return notificationManager.isNotificationPolicyAccessGranted}else{return true}}
+    private fun requestNotificationPermission(){ startActivityForResult(Intent(android.provider.Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS),REQUEST_NOTIFICATION_SETTINGS) }
     private fun hasContactsPermission():Boolean{return ContextCompat.checkSelfPermission(this,Manifest.permission.READ_CONTACTS)==PackageManager.PERMISSION_GRANTED}
     private fun requestPhonePermission(){
         ActivityCompat.requestPermissions(this,arrayOf(Manifest.permission.READ_PHONE_STATE),REQUEST_PHONE)
@@ -57,16 +68,54 @@ class MainActivity : AppCompatActivity() {
         startActivityForResult(yeet,REQUEST_PICK_CONTACT)
     }
 
+    private fun updateUI(){
+        if (!hasPhonePermission()) {
+            show_no_permission()
+            if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.READ_PHONE_STATE)) {
+                Toast.makeText(this,"Requires Phone permission to check incoming numbers",Toast.LENGTH_LONG)
+            }else{
+                requestPhonePermission()
+            }
+        }else{
+            if(!hasNotificationPermission()){
+                val appName=getString(R.string.app_name)
+                Toast.makeText(this,"Give the app \"$appName\" Do Not Disturb permissions to allow sound changes",Toast.LENGTH_LONG).show()
+                requestNotificationPermission()
+            }else {
+                show_has_permission()
+            }
+        }
+    }
+
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
-        when(resultCode){
+        Log.d(TAG,"Received activity result")
+        when(requestCode){
+            REQUEST_NOTIFICATION_SETTINGS->{
+                updateUI()
+            }
             REQUEST_PICK_CONTACT->{
                 if(resultCode==RESULT_OK){
+                    Log.d(TAG,"Contacts result OK")
                     if(data!=null) {
+                        Log.d(TAG,"Contacts data not null")
                         val contactData = data.data
+                        Log.d(TAG,contactData.toString())
                         val cursor = contentResolver.query(contactData, null, null, null, null)
                         if (cursor.moveToFirst()) {
-                            var number=cursor.getString(cursor.getColumnIndex())
+                            Log.d(TAG,"Queried first contact")
+                            val phoneColumn=cursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.NUMBER)
+                            if(phoneColumn>-1){
+                                var number=cursor.getString(phoneColumn)
+                                if(whitelist.containsNumber(number)){
+                                    Toast.makeText(this,"Whitelist already contains number",Toast.LENGTH_SHORT).show()
+                                }else{
+                                    whitelist.append(number)
+                                    update_whitelisted_numbers()
+                                }
+                            }else{
+                                Toast.makeText(this,"Chosen contact does not have a phone number",Toast.LENGTH_SHORT).show()
+                            }
                         } else {
                             Toast.makeText(this, "Failed to read contacts data", Toast.LENGTH_SHORT).show()
                         }
@@ -80,6 +129,7 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+        notificationManager= getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         initViews()
         button_add_contact.setOnClickListener {
             if(hasContactsPermission()){
@@ -149,16 +199,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        if (!hasPhonePermission()) {
-            show_no_permission()
-            if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.READ_PHONE_STATE)) {
-                Toast.makeText(this,"Requires Phone permission to check incoming numbers",Toast.LENGTH_LONG)
-            }else{
-                requestPhonePermission()
-            }
-        }else{
-            show_has_permission()
-        }
+        updateUI()
     }
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {

@@ -2,17 +2,21 @@ package supermega.app.listenupmahimcallinye
 
 import android.content.Context
 import android.content.SharedPreferences
+import io.michaelrocks.libphonenumber.android.PhoneNumberUtil
+import io.michaelrocks.libphonenumber.android.Phonenumber
 import java.io.*
 
 class WhitelistManager(context: Context?){
     private val _context: Context?
     private val _WHITELIST_FILE="whitelist"
     var whitelist:ArrayList<String>
+    private var phoneUtil: PhoneNumberUtil
 
     fun getSize():Int{return whitelist.size}
 
     init{
         _context=context
+        phoneUtil= PhoneNumberUtil.createInstance(_context)
         whitelist= ArrayList()
         load()
     }
@@ -24,29 +28,20 @@ class WhitelistManager(context: Context?){
         whitelist.add(number)
         save()
     }
+    private fun parseNumber(num:String): Phonenumber.PhoneNumber {
+        return phoneUtil.parse(num,"GB")
+    }
     fun containsNumber(number:String):Boolean{
-        val onlydigits=extractDigits(number)
+        val parsedNum=parseNumber(number)
         for(num in whitelist){
-            if(extractDigits(num)==onlydigits){
-                return true
-            }
+            val whiteParsed=parseNumber(num)
+            if(whiteParsed.countryCode==parsedNum.countryCode&&whiteParsed.nationalNumber==parsedNum.nationalNumber){ return true }
         }
         return false
     }
-    fun extractDigits(s:String):String{
-        return s.replace("\\D+","")
-    }
+    //fun extractDigits(s:String):String{ return s.replace("\\D+","") }
     private fun _getPrefs():SharedPreferences?{
         return _context?.getSharedPreferences(_context?.getString(R.string.preference_whitelist),Context.MODE_PRIVATE)
-    }
-    fun isWhitelisted(num:String):Boolean{
-        val dig=extractDigits(num)
-        for(white in whitelist){
-            if(extractDigits(white)==dig){
-                return true
-            }
-        }
-        return false
     }
     private fun _load():ArrayList<String>{
         var list=ArrayList<String>()
