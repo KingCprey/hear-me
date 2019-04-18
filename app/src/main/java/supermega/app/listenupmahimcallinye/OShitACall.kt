@@ -26,33 +26,26 @@ class OShitACall : BroadcastReceiver{
 class PListener(context: Context?) : PhoneStateListener() {
     private val TAG="OSHITACALL PLISTENER"
     private var pcontext: Context?
-    private var soundManager: SoundManager
+    private var _sound:SoundManager
+    private var _whitelist:WhitelistManager
     init{
         pcontext=context
-        soundManager=SoundManager(context)
+        _sound=SoundManager(pcontext)
+        _whitelist=WhitelistManager(pcontext)
     }
 
     override fun onCallStateChanged(state: Int, phoneNumber: String?) {
         Log.d(TAG,"$state incoming number: $phoneNumber")
         when(state){
-            TelephonyManager.CALL_STATE_IDLE->{
+            TelephonyManager.CALL_STATE_IDLE,TelephonyManager.CALL_STATE_OFFHOOK->{
                 //Call has ended?
-                val audio=SoundManager(pcontext)
-                audio.revert()
-            }
-            TelephonyManager.CALL_STATE_OFFHOOK->{
-
+                _sound.silent()
             }
             TelephonyManager.CALL_STATE_RINGING->{
                 if(phoneNumber!=null){
                     val whitelist=WhitelistManager(pcontext)
-                    if(!soundManager.isLoud()){
-                        if (whitelist.containsNumber(phoneNumber)) {
-                            //save current ringer mode
-                            soundManager.save()
-                            //make loud
-                            soundManager.loud()
-                        }
+                    if(!_sound.isPlaying()){
+                        if(whitelist.containsNumber(phoneNumber)){ _sound.loud() }
                     }
                 }
             }
