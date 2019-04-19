@@ -7,14 +7,15 @@ import io.michaelrocks.libphonenumber.android.Phonenumber
 import java.io.*
 
 class WhitelistManager(context: Context?){
-    private val _context: Context?
-    private val _WHITELIST_FILE="whitelist"
+    private val _context: Context? = context
     private var phoneUtil: PhoneNumberUtil
     init{
-        _context=context
         phoneUtil= PhoneNumberUtil.createInstance(_context)
         load()
     }
+
+    private fun _key_value(index:Int):String{ return _context?.getString(R.string.pref_whitelist_value)+index }
+    private fun _key_count():String{return _context?.getString(R.string.pref_whitelist_count)+""}
 
     fun getSize():Int{
         val prefs=_getPrefs() ?: return -1
@@ -23,7 +24,7 @@ class WhitelistManager(context: Context?){
     private fun setSize(newSize:Int){
         val prefs=_getPrefs() ?: return
         with(prefs.edit()) {
-            putInt(_context?.getString(R.string.pref_whitelist_count), newSize)
+            putInt(_key_count(), newSize)
             commit()
         }
     }
@@ -35,11 +36,14 @@ class WhitelistManager(context: Context?){
             commit()
         }
     }
+
     fun append(number:String){
         val prefs=_getPrefs() ?: return
         var size=getSize()
         with(prefs.edit()){
-
+            putString(_key_value(size),number)
+            putInt(_key_count(),size+1)
+            commit()
         }
     }
     private fun parseNumber(num:String): Phonenumber.PhoneNumber {
@@ -48,10 +52,9 @@ class WhitelistManager(context: Context?){
     fun getWhitelist():Array<String>{
         val prefs=_getPrefs() ?: return arrayOf()
         val size=getSize()
-        var whitelist=Array<String>(size){""}
+        var whitelist=Array(size){""}
         for(i in 0 until size){
-            val key=_context?.getString(R.string.pref_whitelist_value)+i
-            whitelist[i]=prefs.getString(key,"") as String
+            whitelist[i]=prefs.getString(_key_value(i),"")
         }
         return whitelist
     }

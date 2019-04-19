@@ -17,23 +17,28 @@ class SoundManager(context: Context?){
     private val TAG="OSHITACALL SoundManager"
     private var _prefs:SharedPreferences
 
+    private val DEFAULT_VOLUME=50.0f
+    private var volume=DEFAULT_VOLUME
+
     init{
         _context=context
         _manager=_context?.getSystemService(Service.AUDIO_SERVICE) as AudioManager
-        _prefs=_context.getSharedPreferences(_context.getString(R.string.shared_preferences_sound),Context.MODE_PRIVATE)
+        _prefs=_getPrefs()
         //notificationManager=_context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         //when Ringtone audio attributes were introduced
+        _loadVolume()
         if(!RingPlayer.initialised) {
             RingPlayer.player.setDataSource(_context, RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE))
             RingPlayer.player.isLooping = true
-            RingPlayer.player.setVolume(50.0f, 50.0f)
+            RingPlayer.player.setVolume(volume, volume)
             RingPlayer.player.prepare()
             RingPlayer.initialised=true
         }
 
     }
 
-    fun getRingMax():Float{ return _manager.getStreamMaxVolume(AudioManager.STREAM_RING) as Float}
+    private fun _keyVolume():String{return _context!!.getString(R.string.pref_ring_volume)}
+    private fun _getPrefs():SharedPreferences{ return _context!!.getSharedPreferences(_context?.getString(R.string.shared_preferences_sound),Context.MODE_PRIVATE) }
 
     fun loud(){
         if(!RingPlayer.player.isPlaying){RingPlayer.player.start()}
@@ -44,23 +49,25 @@ class SoundManager(context: Context?){
     }
     fun isPlaying():Boolean{ return RingPlayer.player.isPlaying }
 
-    private fun _getVolume():Float{
-        return _prefs.getFloat(_context?.getString(R.string.pref_ring_volume),50.0f)
-    }
-    private fun _loadVolume(){
-
-    }
-
-    fun setVolume(leftVolume:Float,rightVolume:Float){
-        RingPlayer.player.setVolume(leftVolume,rightVolume)
+    private fun _getVolume():Float{ return _prefs.getFloat(_keyVolume(),DEFAULT_VOLUME) }
+    private fun _loadVolume(){ volume=_getVolume() }
+    private fun _saveVolume(){
+        with(_prefs.edit()){
+            putFloat(_keyVolume(),volume)
+            commit()
+        }
     }
 
-    fun getVolume(){
-
+    fun setVolume(newVolume:Float){
+        RingPlayer.player.setVolume(newVolume,newVolume)
+        volume=newVolume
+        _saveVolume()
     }
+
+    fun getVolume():Float{ return volume }
 
     /*
-
+    fun getRingMax():Float{ return _manager.getStreamMaxVolume(AudioManager.STREAM_RING) as Float}
     fun loud(){
     /*if(hasNotificationPermission()){
 

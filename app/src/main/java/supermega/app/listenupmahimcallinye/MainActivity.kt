@@ -39,7 +39,8 @@ class MainActivity : AppCompatActivity() {
     private var number_string = "";
 
     private val TAG = "OSHITACALL MainActivity"
-    private lateinit var notificationManager: NotificationManager
+    //private lateinit var notificationManager: NotificationManager
+    private lateinit var soundManager: SoundManager
 
     private fun initViews() {
         layout_has_permission = findViewById(R.id.has_permission_layout)
@@ -50,24 +51,15 @@ class MainActivity : AppCompatActivity() {
         button_request_phone = findViewById(R.id.button_request_phone)
         button_clear_whitelist = findViewById(R.id.button_clear_whitelist)
         seek_volume = findViewById(R.id.seekVolume)
-        whitelist = WhitelistManager(this)
+        seek_volume.progress=soundManager.getVolume() as Int
+        seek_volume.setOnSeekBarChangeListener(object: SeekBar.OnSeekBarChangeListener{
+            override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) { soundManager.setVolume(progress as Float) }
+            override fun onStartTrackingTouch(seekBar: SeekBar) { soundManager.loud() }
+            override fun onStopTrackingTouch(seekBar: SeekBar) { soundManager.silent() }
+        })
     }
 
-    private fun hasPhonePermission(): Boolean {
-        return ContextCompat.checkSelfPermission(
-            this,
-            Manifest.permission.READ_PHONE_STATE
-        ) == PackageManager.PERMISSION_GRANTED
-    }
-
-    private fun hasNotificationPermission(): Boolean {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            return notificationManager.isNotificationPolicyAccessGranted
-        } else {
-            return true
-        }
-    }
-
+    private fun hasPhonePermission(): Boolean { return ContextCompat.checkSelfPermission(this, Manifest.permission.READ_PHONE_STATE) == PackageManager.PERMISSION_GRANTED }
     private fun requestNotificationPermission() {
         startActivityForResult(
             Intent(android.provider.Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS),
@@ -82,13 +74,8 @@ class MainActivity : AppCompatActivity() {
         ) == PackageManager.PERMISSION_GRANTED
     }
 
-    private fun requestPhonePermission() {
-        ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.READ_PHONE_STATE), REQUEST_PHONE)
-    }
-
-    private fun requestContactsPermission() {
-        ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.READ_CONTACTS), REQUEST_CONTACTS)
-    }
+    private fun requestPhonePermission() { ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.READ_PHONE_STATE), REQUEST_PHONE) }
+    private fun requestContactsPermission() { ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.READ_CONTACTS), REQUEST_CONTACTS) }
 
     private fun chooseContact() {
         val yeet = Intent(Intent.ACTION_GET_CONTENT)
@@ -101,9 +88,7 @@ class MainActivity : AppCompatActivity() {
             show_no_permission()
             if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.READ_PHONE_STATE)) {
                 Toast.makeText(this, "Requires Phone permission to check incoming numbers", Toast.LENGTH_LONG)
-            } else {
-                requestPhonePermission()
-            }
+            } else { requestPhonePermission() }
         } else {
             show_has_permission()
             /*if(!hasNotificationPermission()){
@@ -142,17 +127,10 @@ class MainActivity : AppCompatActivity() {
                                     whitelist.append(number)
                                     update_whitelisted_numbers()
                                 }
-                            } else {
-                                Toast.makeText(this, "Chosen contact does not have a phone number", Toast.LENGTH_SHORT)
-                                    .show()
-                            }
-                        } else {
-                            Toast.makeText(this, "Failed to read contacts data", Toast.LENGTH_SHORT).show()
-                        }
+                            } else { Toast.makeText(this, "Chosen contact does not have a phone number", Toast.LENGTH_SHORT).show() }
+                        } else { Toast.makeText(this, "Failed to read contacts data", Toast.LENGTH_SHORT).show() }
                     }
-                } else {
-                    Toast.makeText(this, "Contact not chosen, cancelling add", Toast.LENGTH_SHORT).show()
-                }
+                } else { Toast.makeText(this, "Contact not chosen, cancelling add", Toast.LENGTH_SHORT).show() }
             }
         }
     }
@@ -160,8 +138,9 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-        notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-
+        //notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        soundManager= SoundManager(this)
+        whitelist = WhitelistManager(this)
         initViews()
         requestNotificationPermission()
         button_add_contact.setOnClickListener {
@@ -201,7 +180,6 @@ class MainActivity : AppCompatActivity() {
         }
         button_clear_whitelist.setOnClickListener {
             whitelist.clearWhitelist()
-            //whitelist.save()
             update_whitelisted_numbers()
         }
     }
@@ -218,7 +196,11 @@ class MainActivity : AppCompatActivity() {
         update_whitelisted_numbers()
     }
 
-    fun update_whitelisted_numbers() {
+    private fun updateVolumeUI(){
+        seek_volume.progress=soundManager.getVolume() as Int
+    }
+
+    private fun update_whitelisted_numbers() {
         //whitelist.getWhitelist()
         whitelist.load()
         button_clear_whitelist.visibility = if (whitelist.getSize() > 0) View.VISIBLE else View.INVISIBLE
@@ -264,4 +246,14 @@ class MainActivity : AppCompatActivity() {
             }
         }
     }
+
+    /*
+   private fun hasNotificationPermission(): Boolean {
+       if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+           return notificationManager.isNotificationPolicyAccessGranted
+       } else {
+           return true
+       }
+   }
+   */
 }
