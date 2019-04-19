@@ -5,6 +5,7 @@ import android.app.Service
 import android.content.Context
 import android.content.SharedPreferences
 import android.media.*
+import android.net.rtp.AudioStream
 import android.os.Build
 import android.provider.MediaStore
 import android.util.Log
@@ -13,41 +14,62 @@ import android.widget.Toast
 class SoundManager(context: Context?){
     private val _context: Context?
     private val _manager: AudioManager
-    //private var notificationManager: NotificationManager
+    private var notificationManager: NotificationManager
     private val TAG="OSHITACALL SoundManager"
     private var _prefs:SharedPreferences
 
     private val DEFAULT_VOLUME=50.0f
     private var volume=DEFAULT_VOLUME
 
+    private val STREAM=AudioManager.STREAM_RING
+
     init{
         _context=context
         _manager=_context?.getSystemService(Service.AUDIO_SERVICE) as AudioManager
         _prefs=_getPrefs()
-        //notificationManager=_context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        notificationManager=_context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         //when Ringtone audio attributes were introduced
-        _loadVolume()
-        if(!RingPlayer.initialised) {
-            RingPlayer.player.setDataSource(_context, RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE))
-            RingPlayer.player.isLooping = true
-            RingPlayer.player.setVolume(volume, volume)
-            RingPlayer.player.prepare()
-            RingPlayer.initialised=true
-        }
+        prepare()
 
     }
 
     private fun _keyVolume():String{return _context!!.getString(R.string.pref_ring_volume)}
     private fun _getPrefs():SharedPreferences{ return _context!!.getSharedPreferences(_context?.getString(R.string.shared_preferences_sound),Context.MODE_PRIVATE) }
 
-    fun loud(){
-        if(!RingPlayer.player.isPlaying){RingPlayer.player.start()}
+    fun pause(){
+        RingPlayer.player.pause()
     }
 
-    fun silent(){
-        if(RingPlayer.player.isPlaying){RingPlayer.player.stop()}
+    fun start(){
+        _loadVolume()
+        when(_manager.ringerMode){
+            AudioManager.RINGER_MODE_SILENT,AudioManager.RINGER_MODE_VIBRATE->{
+                _manager.ringerMode=AudioManager.RINGER_MODE_NORMAL
+                _manager.setStreamVolume(STREAM,_manager.getStreamMaxVolume(STREAM),0)
+            }
+        }
+        RingPlayer.player.start()
     }
-    fun isPlaying():Boolean{ return RingPlayer.player.isPlaying }
+    fun prepare(){
+        try{
+            _loadVolume()
+            RingPlayer.player.setDataSource(_context, RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE))
+            if(android.os.Build.VERSION.SDK_INT>=21){
+                RingPlayer.player.setAudioAttributes(AudioAttributes.Builder().setContentType(AudioAttributes.CONTENT_TYPE_MUSIC).setUsage(AudioAttributes.USAGE_NOTIFICATION_RINGTONE).build())
+            }else{
+                RingPlayer.player.setAudioStreamType(AudioManager.STREAM_RING)
+            }
+            RingPlayer.player.isLooping = true
+            RingPlayer.player.setVolume(volume/100.0f, volume/100.0f)
+            RingPlayer.player.prepare()
+        }catch(i: Exception){}
+    }
+
+    fun reset(){
+        pause()
+        RingPlayer.player.seekTo(0)
+
+    }
 
     private fun _getVolume():Float{ return _prefs.getFloat(_keyVolume(),DEFAULT_VOLUME) }
     private fun _loadVolume(){ volume=_getVolume() }
@@ -59,7 +81,7 @@ class SoundManager(context: Context?){
     }
 
     fun setVolume(newVolume:Float){
-        RingPlayer.player.setVolume(newVolume,newVolume)
+        RingPlayer.player.setVolume(newVolume/100.0f,newVolume/100.0f)
         volume=newVolume
         _saveVolume()
     }

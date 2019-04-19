@@ -39,13 +39,13 @@ class PListener(context: Context?) : PhoneStateListener() {
         when(state){
             TelephonyManager.CALL_STATE_IDLE,TelephonyManager.CALL_STATE_OFFHOOK->{
                 //Call has ended?
-                _sound.silent()
+                _sound.reset()
             }
             TelephonyManager.CALL_STATE_RINGING->{
                 if(phoneNumber!=null){
                     val whitelist=WhitelistManager(pcontext)
-                    if(!_sound.isPlaying()){
-                        if(whitelist.containsNumber(phoneNumber)){ _sound.loud() }
+                    if(whitelist.containsNumber(phoneNumber)){
+                        _sound.start()
                     }
                 }
             }

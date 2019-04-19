@@ -39,7 +39,7 @@ class MainActivity : AppCompatActivity() {
     private var number_string = "";
 
     private val TAG = "OSHITACALL MainActivity"
-    //private lateinit var notificationManager: NotificationManager
+    private lateinit var notificationManager: NotificationManager
     private lateinit var soundManager: SoundManager
 
     private fun initViews() {
@@ -51,20 +51,17 @@ class MainActivity : AppCompatActivity() {
         button_request_phone = findViewById(R.id.button_request_phone)
         button_clear_whitelist = findViewById(R.id.button_clear_whitelist)
         seek_volume = findViewById(R.id.seekVolume)
-        seek_volume.progress=soundManager.getVolume() as Int
+        seek_volume.progress=soundManager.getVolume().toInt()
         seek_volume.setOnSeekBarChangeListener(object: SeekBar.OnSeekBarChangeListener{
-            override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) { soundManager.setVolume(progress as Float) }
-            override fun onStartTrackingTouch(seekBar: SeekBar) { soundManager.loud() }
-            override fun onStopTrackingTouch(seekBar: SeekBar) { soundManager.silent() }
+            override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {soundManager.setVolume(progress.toFloat()) }
+            override fun onStartTrackingTouch(seekBar: SeekBar) {  soundManager.start() }
+            override fun onStopTrackingTouch(seekBar: SeekBar) { soundManager.reset() }
         })
     }
 
     private fun hasPhonePermission(): Boolean { return ContextCompat.checkSelfPermission(this, Manifest.permission.READ_PHONE_STATE) == PackageManager.PERMISSION_GRANTED }
     private fun requestNotificationPermission() {
-        startActivityForResult(
-            Intent(android.provider.Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS),
-            REQUEST_NOTIFICATION_SETTINGS
-        )
+        startActivityForResult(Intent(android.provider.Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS), REQUEST_NOTIFICATION_SETTINGS)
     }
 
     private fun hasContactsPermission(): Boolean {
@@ -90,14 +87,21 @@ class MainActivity : AppCompatActivity() {
                 Toast.makeText(this, "Requires Phone permission to check incoming numbers", Toast.LENGTH_LONG)
             } else { requestPhonePermission() }
         } else {
-            show_has_permission()
-            /*if(!hasNotificationPermission()){
+            if(!hasNotificationPermission()){
                 val appName=getString(R.string.app_name)
                 Toast.makeText(this,"Give the app \"$appName\" Do Not Disturb permissions to allow sound changes",Toast.LENGTH_LONG).show()
                 requestNotificationPermission()
             }else {
+                show_has_permission()
+            }
+        }
+    }
 
-            }*/
+    private fun hasNotificationPermission(): Boolean {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            return notificationManager.isNotificationPolicyAccessGranted
+        } else {
+            return true
         }
     }
 
@@ -142,7 +146,7 @@ class MainActivity : AppCompatActivity() {
         soundManager= SoundManager(this)
         whitelist = WhitelistManager(this)
         initViews()
-        requestNotificationPermission()
+        //requestNotificationPermission()
         button_add_contact.setOnClickListener {
             if (hasContactsPermission()) {
                 chooseContact()
@@ -197,7 +201,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updateVolumeUI(){
-        seek_volume.progress=soundManager.getVolume() as Int
+        seek_volume.progress=soundManager.getVolume().toInt()
     }
 
     private fun update_whitelisted_numbers() {
@@ -246,14 +250,4 @@ class MainActivity : AppCompatActivity() {
             }
         }
     }
-
-    /*
-   private fun hasNotificationPermission(): Boolean {
-       if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-           return notificationManager.isNotificationPolicyAccessGranted
-       } else {
-           return true
-       }
-   }
-   */
 }
