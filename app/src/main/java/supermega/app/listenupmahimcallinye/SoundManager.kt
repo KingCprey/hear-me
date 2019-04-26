@@ -5,18 +5,26 @@ import android.app.Service
 import android.content.Context
 import android.content.SharedPreferences
 import android.media.*
+import android.net.Uri
 import android.net.rtp.AudioStream
 import android.os.Build
 import android.provider.MediaStore
 import android.util.Log
 import android.widget.Toast
 
-class SoundManager(context: Context?){
-    private val _context: Context?
+class SoundManager(context: Context){
+    constructor(context: Context,player: MediaPlayer):this(context){
+        _player=player
+        _player.isLooping=true
+
+    }
+    private val _context: Context
     private val _manager: AudioManager
     private var notificationManager: NotificationManager
     private val TAG="OSHITACALL SoundManager"
     private var _prefs:SharedPreferences
+
+    private lateinit var _player: MediaPlayer
 
     private val DEFAULT_VOLUME=50.0f
     private var volume=DEFAULT_VOLUME
@@ -31,6 +39,18 @@ class SoundManager(context: Context?){
         //when Ringtone audio attributes were introduced
         prepare()
 
+    }
+
+    //gimme some static methods boah
+    companion object{
+        fun getDefaultRingtone(): Uri { return RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE) }
+        fun setVolume(context: Context,newVolume: Float){
+            //RingPlayer.player.setVolume(newVolume/100.0f,newVolume/100.0f)
+            _saveVolume()
+        }
+        fun saveVolume(context: Context){
+
+        }
     }
 
     private fun _keyVolume():String{return _context!!.getString(R.string.pref_ring_volume)}
@@ -68,7 +88,6 @@ class SoundManager(context: Context?){
     fun reset(){
         pause()
         RingPlayer.player.seekTo(0)
-
     }
 
     private fun _getVolume():Float{ return _prefs.getFloat(_keyVolume(),DEFAULT_VOLUME) }
@@ -80,13 +99,17 @@ class SoundManager(context: Context?){
         }
     }
 
-    fun setVolume(newVolume:Float){
-        RingPlayer.player.setVolume(newVolume/100.0f,newVolume/100.0f)
-        volume=newVolume
-        _saveVolume()
+    fun setVolume(newVolume:Float){ setVolume(newVolume,true) }
+    fun setVolume(newVolume:Float,save:Boolean){
+        _player.setVolume(newVolume/100.0f,newVolume/100.0f)
+        if(save){  _saveVolume() }
     }
 
     fun getVolume():Float{ return volume }
+
+    fun saveVolume(){
+
+    }
 
     /*
     fun getRingMax():Float{ return _manager.getStreamMaxVolume(AudioManager.STREAM_RING) as Float}

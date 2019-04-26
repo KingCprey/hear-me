@@ -13,4 +13,6 @@
     <string name="pref_whitelist_count">pref_whitelist_count</string>
     <string name="pref_whitelist_value">pref_whitelist_value_</string>
     <string name="pref_ring_volume">pref_ring_volume</string>
+    <string name="pref_sound_ring_mode">pref_ring_mode</string>
+    <string name="pref_"
 </resources>

@@ -30,7 +30,8 @@ class PListener(context: Context?) : PhoneStateListener() {
     private var _whitelist:WhitelistManager
     init{
         pcontext=context
-        _sound=SoundManager(pcontext)
+
+        _sound=SoundManager(pcontext!!)
         _whitelist=WhitelistManager(pcontext)
     }
 
