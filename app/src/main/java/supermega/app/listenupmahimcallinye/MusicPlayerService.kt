@@ -17,8 +17,6 @@ class MusicPlayerService : Service() , MediaPlayer.OnErrorListener{
     private val binder=MusicBinder()
 
     private var mediaPlayer: MediaPlayer? = null
-    private var playOnPrepared=false
-
 
     override fun onCreate() {
         super.onCreate()
@@ -44,8 +42,12 @@ class MusicPlayerService : Service() , MediaPlayer.OnErrorListener{
         if(mediaPlayer!=null){
             mediaPlayer?.start()
         }else{
-            _init()
+            _init(true)
         }
+    }
+
+    fun setVolume(newVolume:Float){
+        mediaPlayer?.setVolume(newVolume/100.0f,newVolume/100.0f)
     }
 
     fun reset(){
@@ -62,23 +64,6 @@ class MusicPlayerService : Service() , MediaPlayer.OnErrorListener{
         try{mediaPlayer?.release()}catch (exc: Exception){}
         _init()
         return false
-    }
-
-    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        if(intent!=null){
-            when(intent.action){
-                ACTION_PLAY->{
-
-                }
-                ACTION_STOP->{
-
-                }
-                ACTION_CHANGE_VOLUME->{
-
-                }
-            }
-        }
-        return super.onStartCommand(intent, flags, startId)
     }
 
 }

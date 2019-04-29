@@ -4,7 +4,7 @@ import android.Manifest
 import android.app.Activity
 import android.app.Notification
 import android.app.NotificationManager
-import android.content.Context
+import android.content.*
 import android.content.pm.PackageManager
 import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
@@ -14,9 +14,8 @@ import android.support.v4.content.ContextCompat
 import android.support.v7.app.AlertDialog
 import android.view.View
 import android.widget.*
-import android.content.DialogInterface
-import android.content.Intent
 import android.os.Build
+import android.os.IBinder
 import android.provider.ContactsContract
 import android.text.InputType
 import android.util.Log
@@ -40,6 +39,22 @@ class MainActivity : AppCompatActivity() {
 
     private val TAG = "OSHITACALL MainActivity"
     private lateinit var notificationManager: NotificationManager
+    private lateinit var volumeManager: VolumeManager
+
+    private lateinit var musicService: MusicPlayerService
+    private var musicBound: Boolean = false
+
+    private val musicConnection = object: ServiceConnection{
+        override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
+            val binder=service as MusicPlayerService.MusicBinder
+            musicService=binder.getService()
+            musicBound=true
+        }
+
+        override fun onServiceDisconnected(name: ComponentName?) {
+            musicBound=false
+        }
+    }
 
     private fun initViews() {
         layout_has_permission = findViewById(R.id.has_permission_layout)
@@ -50,11 +65,11 @@ class MainActivity : AppCompatActivity() {
         button_request_phone = findViewById(R.id.button_request_phone)
         button_clear_whitelist = findViewById(R.id.button_clear_whitelist)
         seek_volume = findViewById(R.id.seekVolume)
-        seek_volume.progress=soundManager.getVolume().toInt()
+        seek_volume.progress=volumeManager.getVolume().toInt()
         seek_volume.setOnSeekBarChangeListener(object: SeekBar.OnSeekBarChangeListener{
-            override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {soundManager.setVolume(progress.toFloat()) }
-            override fun onStartTrackingTouch(seekBar: SeekBar) {  soundManager.start() }
-            override fun onStopTrackingTouch(seekBar: SeekBar) { soundManager.reset() }
+            override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {volumeManager.setVolume(progress.toFloat()) }
+            override fun onStartTrackingTouch(seekBar: SeekBar) { musicService.start() }
+            override fun onStopTrackingTouch(seekBar: SeekBar) { musicService.reset() }
         })
     }
 
@@ -142,7 +157,8 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         //notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        soundManager= SoundManager(this)
+        //soundManager= SoundManager(this)
+        volumeManager=VolumeManager(this)
         whitelist = WhitelistManager(this)
         initViews()
         //requestNotificationPermission()
@@ -162,20 +178,17 @@ class MainActivity : AppCompatActivity() {
             builder.setView(input)
 
 // Set up the buttons
-            builder.setPositiveButton("OK",
-                { dialog, which ->
-                    number_string = input.text.toString()
-                    if (whitelist.containsNumber(number_string)) {
-                        Toast.makeText(this, "Number already added", Toast.LENGTH_SHORT).show()
-                    } else {
-                        whitelist.append(number_string)
-                        //whitelist.save()
-                        update_whitelisted_numbers()
-                    }
+            builder.setPositiveButton("OK") { _, _ ->
+                number_string = input.text.toString()
+                if (whitelist.containsNumber(number_string)) {
+                    Toast.makeText(this, "Number already added", Toast.LENGTH_SHORT).show()
+                } else {
+                    whitelist.append(number_string)
+                    //whitelist.save()
+                    update_whitelisted_numbers()
                 }
-            )
-            builder.setNegativeButton("Cancel",
-                DialogInterface.OnClickListener { dialog, which -> dialog.cancel() })
+            }
+            builder.setNegativeButton("Cancel") { dialog, _ -> dialog.cancel() }
             builder.show()
         }
         button_request_phone.setOnClickListener {
@@ -199,10 +212,6 @@ class MainActivity : AppCompatActivity() {
         update_whitelisted_numbers()
     }
 
-    private fun updateVolumeUI(){
-        seek_volume.progress=soundManager.getVolume().toInt()
-    }
-
     private fun update_whitelisted_numbers() {
         //whitelist.getWhitelist()
         whitelist.load()
@@ -216,6 +225,16 @@ class MainActivity : AppCompatActivity() {
             linlayout.addView(tview)
         }
         scroll_whitelisted_numbers.addView(linlayout)
+    }
+
+    override fun onStart(){
+        Intent(this,MusicPlayerService::class.java).also { intent->bindService(intent,musicConnection,Context.BIND_AUTO_CREATE) }
+        super.onStart()
+    }
+
+    override fun onDestroy() {
+        unbindService(musicConnection)
+        super.onDestroy()
     }
 
 

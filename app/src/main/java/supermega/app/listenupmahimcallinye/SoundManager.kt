@@ -12,7 +12,8 @@ import android.provider.MediaStore
 import android.util.Log
 import android.widget.Toast
 
-class SoundManager(){
+class SoundManager(context: Context){
+    private val context=context
     companion object{
         fun getDefaultRingtone(): Uri { return RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE) }
     }
