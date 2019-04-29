@@ -40,7 +40,6 @@ class MainActivity : AppCompatActivity() {
 
     private val TAG = "OSHITACALL MainActivity"
     private lateinit var notificationManager: NotificationManager
-    private lateinit var soundManager: SoundManager
 
     private fun initViews() {
         layout_has_permission = findViewById(R.id.has_permission_layout)

@@ -12,12 +12,19 @@ import android.provider.MediaStore
 import android.util.Log
 import android.widget.Toast
 
+class SoundManager(){
+    companion object{
+        fun getDefaultRingtone(): Uri { return RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE) }
+    }
+}
+/*
 class SoundManager(context: Context){
     constructor(context: Context,player: MediaPlayer):this(context){
         _player=player
         _player.isLooping=true
 
     }
+
     private val _context: Context
     private val _manager: AudioManager
     private var notificationManager: NotificationManager
@@ -25,9 +32,6 @@ class SoundManager(context: Context){
     private var _prefs:SharedPreferences
 
     private lateinit var _player: MediaPlayer
-
-    private val DEFAULT_VOLUME=50.0f
-    private var volume=DEFAULT_VOLUME
 
     private val STREAM=AudioManager.STREAM_RING
 
@@ -42,23 +46,10 @@ class SoundManager(context: Context){
     }
 
     //gimme some static methods boah
-    companion object{
-        fun getDefaultRingtone(): Uri { return RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE) }
-        fun setVolume(context: Context,newVolume: Float){
-            //RingPlayer.player.setVolume(newVolume/100.0f,newVolume/100.0f)
-            _saveVolume()
-        }
-        fun saveVolume(context: Context){
 
-        }
-    }
 
     private fun _keyVolume():String{return _context!!.getString(R.string.pref_ring_volume)}
     private fun _getPrefs():SharedPreferences{ return _context!!.getSharedPreferences(_context?.getString(R.string.shared_preferences_sound),Context.MODE_PRIVATE) }
-
-    fun pause(){
-        RingPlayer.player.pause()
-    }
 
     fun start(){
         _loadVolume()
@@ -189,5 +180,5 @@ class SoundManager(context: Context){
         if(RingPlayer.player.isPlaying) { RingPlayer.player.stop() }
     }
     */
-
 }
+ */
