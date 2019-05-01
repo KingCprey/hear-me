@@ -11,17 +11,21 @@ import android.util.Log
 import android.widget.Toast
 import io.michaelrocks.libphonenumber.android.PhoneNumberUtil
 
+const val BROADCAST_STOP_MUSIC="supermega.app.listenupmahimcallingye.broadcast.killmusic"
+
 class OShitACall : BroadcastReceiver(){
     private val TAG="OSHITACALL"
 
     companion object{
         private var lastState = TelephonyManager.CALL_STATE_IDLE
+        private var musicTriggered = false
         fun getStateFromExtra(callStateExtra:String):Int{
             when(callStateExtra){
                 TelephonyManager.EXTRA_STATE_IDLE->return TelephonyManager.CALL_STATE_IDLE
                 TelephonyManager.EXTRA_STATE_OFFHOOK->return TelephonyManager.CALL_STATE_OFFHOOK
                 TelephonyManager.EXTRA_STATE_RINGING->return TelephonyManager.CALL_STATE_RINGING
             }
+            return -1
         }
     }
 
@@ -36,21 +40,42 @@ class OShitACall : BroadcastReceiver(){
         }
     }
 
+    fun sendKillBroadcast(context: Context){
+        val i=Intent(BROADCAST_STOP_MUSIC)
+        context.sendBroadcast(i)
+    }
+
+    fun startMusic(context: Context){
+        val i =Intent(context,RingActivity::class.java)
+        context.startActivity(i)
+    }
+
     fun onChange(context: Context, state: Int, number: String){
+        Log.d(TAG,"Phone state changed, new state $state")
         if(state== lastState) return
         when(state){
             TelephonyManager.CALL_STATE_RINGING->{
-
+                if(SoundManager.getRingerMode(context)!=AudioManager.RINGER_MODE_NORMAL){
+                    val whitelist=WhitelistManager(context)
+                    if(whitelist.containsNumber(number)){
+                        Log.d(TAG,"TRIGGERING MUSIC")
+                        startMusic(context)
+                        musicTriggered=true
+                    }
+                }
             }
             TelephonyManager.CALL_STATE_OFFHOOK,TelephonyManager.CALL_STATE_IDLE->{
-
+                if(musicTriggered){
+                    sendKillBroadcast(context)
+                    musicTriggered=false
+                }
             }
         }
         lastState=state
     }
 
 }
-
+/*
 class PListener(context: Context?) : PhoneStateListener() {
     private val TAG="OSHITACALL PLISTENER"
     private var pcontext: Context?
@@ -81,3 +106,4 @@ class PListener(context: Context?) : PhoneStateListener() {
         }
     }
 }
+       */

@@ -6,6 +6,7 @@ import android.app.Notification
 import android.app.NotificationManager
 import android.content.*
 import android.content.pm.PackageManager
+import android.media.MediaPlayer
 import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
 import android.support.constraint.ConstraintLayout
@@ -40,7 +41,11 @@ class MainActivity : AppCompatActivity() {
     private val TAG = "OSHITACALL MainActivity"
     private lateinit var notificationManager: NotificationManager
     private lateinit var volumeManager: VolumeManager
+    private lateinit var mediaPlayer: MediaPlayer
+    private var mediaPrepared=false
+    private var playOnPrepared=false
 
+    /*
     private lateinit var musicService: MusicPlayerService
     private var musicBound: Boolean = false
 
@@ -55,6 +60,7 @@ class MainActivity : AppCompatActivity() {
             musicBound=false
         }
     }
+    */
 
     private fun initViews() {
         layout_has_permission = findViewById(R.id.has_permission_layout)
@@ -67,9 +73,17 @@ class MainActivity : AppCompatActivity() {
         seek_volume = findViewById(R.id.seekVolume)
         seek_volume.progress=volumeManager.getVolume().toInt()
         seek_volume.setOnSeekBarChangeListener(object: SeekBar.OnSeekBarChangeListener{
-            override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {volumeManager.setVolume(progress.toFloat()) }
-            override fun onStartTrackingTouch(seekBar: SeekBar) { musicService.start() }
-            override fun onStopTrackingTouch(seekBar: SeekBar) { musicService.reset() }
+            override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
+                volumeManager.setVolume(progress.toFloat())
+                mediaPlayer.setVolume(volumeManager.getMediaVolume(),volumeManager.getMediaVolume())
+            }
+            override fun onStartTrackingTouch(seekBar: SeekBar) {
+                if(!mediaPrepared){ playOnPrepared=true }
+                else{
+                    mediaPlayer.start()
+                }
+            }
+            override fun onStopTrackingTouch(seekBar: SeekBar) { mediaPlayer.pause(); mediaPlayer.seekTo(0)}
         })
     }
 
@@ -101,13 +115,14 @@ class MainActivity : AppCompatActivity() {
                 Toast.makeText(this, "Requires Phone permission to check incoming numbers", Toast.LENGTH_LONG)
             } else { requestPhonePermission() }
         } else {
-            if(!hasNotificationPermission()){
+            /*if(!hasNotificationPermission()){
                 val appName=getString(R.string.app_name)
                 Toast.makeText(this,"Give the app \"$appName\" Do Not Disturb permissions to allow sound changes",Toast.LENGTH_LONG).show()
                 requestNotificationPermission()
             }else {
                 show_has_permission()
-            }
+            }*/
+            show_has_permission()
         }
     }
 
@@ -116,6 +131,22 @@ class MainActivity : AppCompatActivity() {
             return notificationManager.isNotificationPolicyAccessGranted
         } else {
             return true
+        }
+    }
+
+    private fun initMediaPlayer(){
+        mediaPlayer=MediaPlayer()
+        val volume=VolumeManager.getMediaVolume(this)
+        val cont=this
+        mediaPlayer.apply {
+            setVolume(volume,volume)
+            setOnPreparedListener {
+                mediaPrepared=true
+                if(playOnPrepared){ start() }
+            }
+            isLooping=true
+            setDataSource(cont,SoundManager.getDefaultRingtone())
+            prepareAsync()
         }
     }
 
@@ -156,10 +187,11 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-        //notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         //soundManager= SoundManager(this)
         volumeManager=VolumeManager(this)
         whitelist = WhitelistManager(this)
+        initMediaPlayer()
         initViews()
         //requestNotificationPermission()
         button_add_contact.setOnClickListener {
@@ -228,12 +260,13 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onStart(){
-        Intent(this,MusicPlayerService::class.java).also { intent->bindService(intent,musicConnection,Context.BIND_AUTO_CREATE) }
+        //Intent(this,MusicPlayerService::class.java).also { intent->bindService(intent,musicConnection,Context.BIND_AUTO_CREATE) }
         super.onStart()
     }
 
     override fun onDestroy() {
-        unbindService(musicConnection)
+        //unbindService(musicConnection)
+        mediaPlayer.release()
         super.onDestroy()
     }
 

@@ -16,6 +16,10 @@ class SoundManager(context: Context){
     private val context=context
     companion object{
         fun getDefaultRingtone(): Uri { return RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE) }
+        fun getRingerMode(context: Context):Int{
+            val manager=context.getSystemService(Service.AUDIO_SERVICE)as AudioManager
+            return manager.ringerMode
+        }
     }
 }
 /*
